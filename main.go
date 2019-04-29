@@ -13,16 +13,17 @@ import (
 func main() {
 
 	path := flag.String("path", ".", "-path=<PATH>")
+	quality := flag.Int("quality", 90, "-quality=<0-100>")
 	flag.Parse()
 
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Print(`Going to reduce image sizes in the folder : "`, *path, `" .Do you want to continue (y/n)?`, "\n")
+	fmt.Print(`Going to reduce image quality 100% to `, *quality, `% in the folder : "`, *path, `" .Do you want to continue (y/n)?`, "\n")
 	scanner.Scan()
 
 	if scanner.Text() != "y" {
 		return
 	} else {
-		err := start(*path)
+		err := start(*path, *quality)
 
 		if err != nil {
 			fmt.Println(err)
@@ -31,7 +32,7 @@ func main() {
 
 }
 
-func start(p string) error {
+func start(p string, q int) error {
 
 	err := filepath.Walk(p,
 		func(path string, info os.FileInfo, err error) error {
@@ -39,7 +40,7 @@ func start(p string) error {
 			if err != nil {
 				return err
 			} else {
-				return compressMe(path, info)
+				return compressMe(path, info, q)
 			}
 
 		})
@@ -63,7 +64,7 @@ func getFileContentType(out *os.File) (string, error) {
 	return contentType, nil
 }
 
-func compressMe(path string, info os.FileInfo) error {
+func compressMe(path string, info os.FileInfo, quality int) error {
 
 	if info.Mode().IsRegular() {
 
@@ -110,7 +111,7 @@ func compressMe(path string, info os.FileInfo) error {
 				return err
 			}
 
-			err = jpeg.Encode(o, i, &jpeg.Options{Quality: 30})
+			err = jpeg.Encode(o, i, &jpeg.Options{Quality: quality})
 
 			if err != nil {
 				return err
