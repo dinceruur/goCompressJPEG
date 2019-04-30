@@ -5,15 +5,19 @@ import (
 	"flag"
 	"fmt"
 	"image/jpeg"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
 )
 
+var totalSave float64
+var totalJPEG float64
+
 func main() {
 
 	path := flag.String("path", ".", "-path=<PATH>")
-	quality := flag.Int("quality", 90, "-quality=<0-100>")
+	quality := flag.Int("quality", 5, "-quality=<0-100>")
 	flag.Parse()
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -24,6 +28,7 @@ func main() {
 		return
 	} else {
 		err := start(*path, *quality)
+		fmt.Printf("Total JPEG Count is %v, saved %v MB \n", totalJPEG, totalSave)
 
 		if err != nil {
 			fmt.Println(err)
@@ -40,7 +45,8 @@ func start(p string, q int) error {
 			if err != nil {
 				return err
 			} else {
-				return compressMe(path, info, q)
+				compressMe(path, info, q)
+				return nil
 			}
 
 		})
@@ -64,57 +70,57 @@ func getFileContentType(out *os.File) (string, error) {
 	return contentType, nil
 }
 
-func compressMe(path string, info os.FileInfo, quality int) error {
+func compressMe(path string, info os.FileInfo, quality int) {
 
 	if info.Mode().IsRegular() {
 
 		f, err := os.Open(path)
 
 		if err != nil {
-			return err
+			fmt.Println(err)
 		}
 
 		c, err := getFileContentType(f)
 
 		if err != nil {
-			return err
+			fmt.Println(err)
 		}
 
 		err = f.Close()
 
 		if err != nil {
-			return err
+			fmt.Println(err)
 		}
 
 		if c == "image/jpeg" {
 			f, err := os.Open(path)
 
 			if err != nil {
-				return err
+				fmt.Println(err)
 			}
 
 			i, err := jpeg.Decode(f)
 
 			if err != nil {
-				return err
+				fmt.Println(err)
 			}
 
 			err = f.Close()
 
 			if err != nil {
-				return err
+				fmt.Println(err)
 			}
 
 			o, err := os.Create(fmt.Sprintf("%v", path))
 
 			if err != nil {
-				return err
+				fmt.Println(err)
 			}
 
 			err = jpeg.Encode(o, i, &jpeg.Options{Quality: quality})
 
 			if err != nil {
-				return err
+				fmt.Println(err)
 			}
 
 			s, _ := o.Stat()
@@ -122,12 +128,15 @@ func compressMe(path string, info os.FileInfo, quality int) error {
 			err = o.Close()
 
 			if err != nil {
-				return err
+				fmt.Println(err)
 			}
 
-			fmt.Printf("%v is compressed.\t Before: %v KB \t After: %v KB\t Comprasion Level: %%%v \n", path, info.Size()/1024, ns/1024, (ns/1024)*100/(info.Size()/1024))
+			sizeBefore := float64(info.Size())
+			sizeAfter := float64(ns)
+			totalSave += (sizeBefore - sizeAfter) / 1000000.0
+			totalJPEG++
+			fmt.Printf("%v is compressed.\t Before: %v KB \t After: %v KB\t Comprasion Level: %%%v \n", path, info.Size()/1000, ns/1000, math.Round(((sizeBefore-sizeAfter)/sizeBefore)*100))
 		}
 	}
 
-	return nil
 }
