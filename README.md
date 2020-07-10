@@ -1,5 +1,5 @@
 # goCompressJPEG
-Basic golang code to decrease the quality of old images in the folder.
+Basic golang code to decrease the quality of old images in a folder.
 
 # Usage
 go run main.go -path=[PATH] -quality=[0-100]
